@@ -1,0 +1,28 @@
+{
+  "name": "npm-audit-csv",
+  "version": "0.0.0-development",
+  "description": "Generate a csv report for NPM Audit",
+  "main": "index.js",
+  "bin": {
+    "npm-audit-csv": "index.js"
+  },
+  "scripts": {
+    "init": "eslint --init",
+    "test": "npm run lint",
+    "lint": "eslint '*.js'",
+    "lint:fix": "eslint '*.js' --fix",
+    "lint!": "npm run format && npm run lint:fix",
+    "format": "prettier --write '*.js'"
+  },
+  "author": "arther.tony02@gmail.com",
+  "repository": "",
+  "license": "MIT",
+  "dependencies": {
+    "json2csv": "^5.0.6",
+    "package-lock.json": "^1.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.25.0",
+    "prettier": "^2.2.1"
+  }
+}
