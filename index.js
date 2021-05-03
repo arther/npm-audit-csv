@@ -1,16 +1,30 @@
 #!/usr/bin/env node
+const { program } = require('commander');
 const fs = require("fs");
 const { Parser } = require("json2csv");
+const package = require('./package.json');
 let data = "";
 
-process.stdin.resume();
-process.stdin.setEncoding("utf8");
-process.stdin.on("readable", function () {
-  const chunk = this.read();
-  if (chunk !== null) {
-    data += chunk;
-  }
-});
+program
+  .version(package.version)
+  .option('-o, --output [output]', 'output file')
+  .option('-i, --input [input]', 'input file')
+  .action((cmd, env) => {
+    try {
+      if (cmd.input) {
+        data = fs.readFileSync(cmd.input).toString();
+      }
+      if (!data) {
+        console.log('No input')
+        return process.exit(1)
+      }
+
+      generateReport(data, cmd.output)
+    } catch (err) {
+      console.error('Failed to parse NPM Audit JSON!')
+      return process.exit(1)
+    }
+  });
 
 const getAdvisory = (jsonContent, key) => {
   return jsonContent.advisories
@@ -66,7 +80,7 @@ const actionParser = (fullJson, action) => {
   });
 };
 
-process.stdin.on("end", function () {
+const generateReport = (data, outputFileName = "npm-audit-report.csv") => {
   const fullJson = JSON.parse(data);
   const rows = fullJson.actions
     .map((action) => {
@@ -76,8 +90,24 @@ process.stdin.on("end", function () {
   try {
     const parser = new Parser({});
     const csv = parser.parse(rows);
-    fs.writeFileSync("npm-audit-report.csv", csv);
+    fs.writeFileSync(outputFileName, csv);
+    console.log("Report generated :)")
   } catch (err) {
     console.error(err);
   }
-});
+}
+if (process.stdin.isTTY) {
+  program.parse(process.argv)
+} else {
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("readable", function () {
+    const chunk = this.read();
+    if (chunk !== null) {
+      data += chunk;
+    }
+  });
+
+  process.stdin.on("end", function () {
+    program.parse(process.argv);
+  });
+}
