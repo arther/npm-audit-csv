@@ -21,7 +21,7 @@ program
 
       generateReport(data, cmd.output)
     } catch (err) {
-      console.error('Failed to parse NPM Audit JSON!')
+      console.error('Failed to parse NPM Audit JSON!', err)
       return process.exit(1)
     }
   });
@@ -36,36 +36,37 @@ const getCVEs = (advisory) => {
   return advisory.cves ? advisory.cves.join(",") : "";
 };
 
-const expandPaths = (content, paths) => {
-  return paths.map((path) => {
-    return {
-      ...content,
-      path,
-    };
-  });
-};
+const getFindingWithMatchingPath = (advisory, path) => {
+  let pathFound = undefined;
+  let finding = undefined;
+  const findings = advisory["findings"];
+  for (const index in findings) {
+    finding = findings[index];
+    pathFound = finding.paths.find((ele) => ele === path);
+    if (pathFound) {
+      return finding;
+    }
+  }
+}
 
 const resolveParser = (fullJson, resolve) => {
   const advisory = getAdvisory(fullJson, resolve.id);
   const affectedModuleName = advisory.module_name;
-  return advisory.findings
-    .map((finding) => {
-      const map = {
-        module: affectedModuleName,
-        version: finding.version,
-        vulnerability: getCVEs(advisory),
-        severity: advisory.severity,
-        vulnerability_description: advisory.title,
-        vulnerable_versions: advisory.vulnerable_versions,
-        patched_versions: advisory.patched_versions,
-        overview: advisory.overview,
-        recommendation: advisory.recommendation,
-        references: advisory.references,
-        url: advisory.url,
-      };
-      return expandPaths(map, finding.paths).flat();
-    })
-    .flat();
+  const finding = getFindingWithMatchingPath(advisory, resolve.path);
+  return {
+    module: affectedModuleName,
+    version: finding.version,
+    vulnerability: getCVEs(advisory),
+    severity: advisory.severity,
+    vulnerability_description: advisory.title,
+    vulnerable_versions: advisory.vulnerable_versions,
+    patched_versions: advisory.patched_versions,
+    overview: advisory.overview,
+    recommendation: advisory.recommendation,
+    references: advisory.references,
+    url: advisory.url,
+    path: resolve.path
+  }
 };
 
 const actionParser = (fullJson, action) => {
@@ -91,7 +92,7 @@ const generateReport = (data, outputFileName = "npm-audit-report.csv") => {
     const parser = new Parser({});
     const csv = parser.parse(rows);
     fs.writeFileSync(outputFileName, csv);
-    console.log("Report generated :)")
+    console.log(`Report generated successfully with the file name ${outputFileName}`)
   } catch (err) {
     console.error(err);
   }
